@@ -172,7 +172,7 @@ suite('index', function () {
         )
     })
 
-    test('recoverPublicFromAssertionResponse', function () {
+    test('recoverPossiblePublicKeys', function () {
         // The expected public key (this should match the key used to create the signature)
         const expectedKey = PublicKey.from(
             'PUB_WA_8niBKS9ccWGFwNFgg19PJuejhyAFKrf5kd1TbxvtgnuR3VrpmEMVzFWEP6dBAjWh4'
