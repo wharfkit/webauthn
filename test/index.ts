@@ -171,4 +171,81 @@ suite('index', function () {
             'recovered key from wrong message should not match'
         )
     })
+
+    test('recoverPotentialPublicKeysFromAssertion', function () {
+        const tests = [
+            {
+                expected: PublicKey.from(
+                    'PUB_WA_6tRfHhBJEKMvgTqzbpHwUnCsAX9mdQ3sTx8GTs6St4HoJrVf9kTTQgYxoRbdrxj88'
+                ),
+                test: {
+                    authenticatorData: 'SZYN5YgOjGh0NBcPZHZgW4/krrmihjLHmVzzuoMdl2MdAAAAAA==',
+                    clientDataJSON:
+                        'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoickpsSTVCeXB3YUpwOG5lQTE4dFlfQSIsIm9yaWdpbiI6Imh0dHBzOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2V9',
+                    signature:
+                        'MEUCIFcwod+ysA7/YlR1Gme5TjvLI36M2IaU+wlu/cV8hRmjAiEA0FBLtOmZWC304WqPKOIAYy1A86i26WPcdLBoYDPZLqY=',
+                },
+            },
+            {
+                expected: PublicKey.from(
+                    'PUB_WA_7BAnMs5fFe1g1vac4gXebMUugyZr2qzTtKNBPQYgbC7ME6ybpMrN6CMpqeDMvCPS8'
+                ),
+                test: {
+                    authenticatorData: 'SZYN5YgOjGh0NBcPZHZgW4/krrmihjLHmVzzuoMdl2MdAAAAAA==',
+                    clientDataJSON:
+                        'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiZWt1VV9YN253QXF5RU1aZ052eDFQQSIsIm9yaWdpbiI6Imh0dHBzOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2V9',
+                    signature:
+                        'MEUCIQC4z8hB3Zny321uEXJWq8mwnsh0RfSrPeFu0dZiveVcegIgE7ZRC5konLMZNdNbw+jUSuI3sW6xbzLo+9edcGbdb0Q=',
+                },
+            },
+            {
+                expected: PublicKey.from(
+                    'PUB_WA_8niBKS9ccWGFwNFgg19PJuejhyAFKrf5kd1TbxvtgnuR3VrpmEMVzFWEP6dBAjWh4'
+                ),
+                test: {
+                    authenticatorData: 'SZYN5YgOjGh0NBcPZHZgW4/krrmihjLHmVzzuoMdl2MdAAAAAA==',
+                    clientDataJSON:
+                        'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiVXRYMy1NNW9FTEVqZV8tSENkSVd6dyIsIm9yaWdpbiI6Imh0dHBzOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2V9',
+                    signature:
+                        'MEUCIBbjJaEML505WsbWYY84bGziHUuSnvgS4h5PwQ6+b2PMAiEA8SSLjTbOowaV1u1Yp2Sf2w5gq0LkBcNhSI3tZJfVDLU=',
+                },
+            },
+        ]
+
+        for (const data of tests) {
+            // Construct a mock AuthenticatorAssertionResponse
+            const authenticatorData = Buffer.from(data.test.authenticatorData, 'base64')
+            const clientDataJSON = Buffer.from(data.test.clientDataJSON, 'base64')
+            const signature = Buffer.from(data.test.signature, 'base64')
+            const response: AuthenticatorAssertionResponse = {
+                authenticatorData: authenticatorData.buffer.slice(
+                    authenticatorData.byteOffset,
+                    authenticatorData.byteOffset + authenticatorData.byteLength
+                ) as ArrayBuffer,
+                clientDataJSON: clientDataJSON.buffer.slice(
+                    clientDataJSON.byteOffset,
+                    clientDataJSON.byteOffset + clientDataJSON.byteLength
+                ) as ArrayBuffer,
+                signature: signature.buffer.slice(
+                    signature.byteOffset,
+                    signature.byteOffset + signature.byteLength
+                ) as ArrayBuffer,
+                userHandle: new ArrayBuffer(0),
+            }
+
+            // Recover the public key from the assertion response
+            const publicKeys = lib.recoverPotentialPublicKeysFromAssertion(response)
+
+            // Verify the key returned is the proper type
+            publicKeys.forEach((publicKey) => {
+                assert.equal(publicKey.type, KeyType.WA, 'recovered keys should all be type of WA')
+            })
+
+            // Ensure the recovered key matches the expected key
+            assert.isTrue(
+                publicKeys.some((pk) => pk.equals(data.expected)),
+                'one of the public keys should equal the original public key'
+            )
+        }
+    })
 })

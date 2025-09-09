@@ -146,6 +146,42 @@ export function verifyPublic(signature: Signature, message: Bytes, publicKey: Pu
     return curve.verify(messageDigest, {r, s}, publicKeyData as any)
 }
 
+export function recoverPotentialPublicKeysFromAssertion(
+    assertionResponse: AuthenticatorAssertionResponse
+): PublicKey[] {
+    const authenticatorData = Bytes.from(assertionResponse.authenticatorData)
+    const clientDataJSON = Bytes.from(assertionResponse.clientDataJSON)
+
+    const message = new Bytes()
+    message.append(authenticatorData)
+    message.append(Checksum256.hash(clientDataJSON))
+
+    const decoder = new Decoder(assertionResponse.signature).derDecoder(0x30)
+    const r = fixPoint(decoder.readDer(0x02))
+    const s = fixPoint(decoder.readDer(0x02))
+    const keys: PublicKey[] = []
+    for (let recid = 0; recid < 4; recid++) {
+        try {
+            const encoder = new ABIEncoder()
+            encoder.writeByte(recid + 31)
+            encoder.writeArray(r)
+            encoder.writeArray(s)
+            authenticatorData.toABI(encoder)
+            clientDataJSON.toABI(encoder)
+
+            const signature = new Signature(KeyType.WA, encoder.getBytes())
+            const key = recoverPublic(signature, message)
+            keys.push(key)
+        } catch (e) {
+            // Ignore errors, try next recid
+        }
+    }
+    if (!keys.length) {
+        throw new Error('Unable to recover any potential public keys from signature')
+    }
+    return keys
+}
+
 function decodeAuthData(authData: Uint8Array) {
     const decoder = new Decoder(authData)
 
