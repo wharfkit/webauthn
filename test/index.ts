@@ -175,22 +175,21 @@ suite('index', function () {
     test('recoverPublicFromAssertionResponse', function () {
         // The expected public key (this should match the key used to create the signature)
         const expectedKey = PublicKey.from(
-            'PUB_WA_6VkTUGW4F3bLboSoGQD5dGwvHJCjkJNboSe74wV3Xg7XeLJQ6VXeRYAqvJXkyRJNA'
+            'PUB_WA_8niBKS9ccWGFwNFgg19PJuejhyAFKrf5kd1TbxvtgnuR3VrpmEMVzFWEP6dBAjWh4'
         )
 
+        const test = {
+            authenticatorData: 'SZYN5YgOjGh0NBcPZHZgW4/krrmihjLHmVzzuoMdl2MdAAAAAA==',
+            clientDataJSON:
+                'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiVXRYMy1NNW9FTEVqZV8tSENkSVd6dyIsIm9yaWdpbiI6Imh0dHBzOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2V9',
+            signature:
+                'MEUCIBbjJaEML505WsbWYY84bGziHUuSnvgS4h5PwQ6+b2PMAiEA8SSLjTbOowaV1u1Yp2Sf2w5gq0LkBcNhSI3tZJfVDLU=',
+        }
+
         // Construct a mock AuthenticatorAssertionResponse
-        const authenticatorData = Buffer.from(
-            'SZYN5YgOjGh0NBcPZHZgW4/krrmihjLHmVzzuoMdl2MdAAAAAA==',
-            'base64'
-        )
-        const clientDataJSON = Buffer.from(
-            'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoidldCOEs1Q2dLelBfOFdNWmpTZC1ydyIsIm9yaWdpbiI6Imh0dHBzOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2V9',
-            'base64'
-        )
-        const signature = Buffer.from(
-            'MEUCIFsuMcPcYAdtIk8lj8QA5WfOUyKZJmCeS9CfJ/xwHKZaAiEAmWBxT5LlZhPxn1CpHRURXsfxxoy6tAEfuuoIL+LITtY=',
-            'base64'
-        )
+        const authenticatorData = Buffer.from(test.authenticatorData, 'base64')
+        const clientDataJSON = Buffer.from(test.clientDataJSON, 'base64')
+        const signature = Buffer.from(test.signature, 'base64')
         const response: AuthenticatorAssertionResponse = {
             authenticatorData: authenticatorData.buffer.slice(
                 authenticatorData.byteOffset,
@@ -208,12 +207,14 @@ suite('index', function () {
         }
 
         // Recover the public key from the assertion response
-        const recoveredPublicKey = lib.recoverPublicFromAssertionResponse(response)
+        const possibleKeys = lib.recoverPossiblePublicKeys(response)
 
-        // Verify the recovered public key
-        assert.equal(recoveredPublicKey.type, KeyType.WA, 'recovered key type should be WA')
+        // Verify the keys returned are the proper type
+        assert.equal(possibleKeys[0].type, KeyType.WA, 'recovered key type should be WA')
+
+        // Ensure at least one of the recovered keys matches the expected key
         assert.isTrue(
-            recoveredPublicKey.equals(expectedKey),
+            possibleKeys.some((key) => key.equals(expectedKey)),
             'recovered public key should equal the fully constructed original public key'
         )
     })
