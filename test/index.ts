@@ -172,7 +172,7 @@ suite('index', function () {
         )
     })
 
-    test('recoverPossiblePublicKeys', function () {
+    test('recoverPublicFromAssertion', function () {
         // The expected public key (this should match the key used to create the signature)
         const expectedKey = PublicKey.from(
             'PUB_WA_8niBKS9ccWGFwNFgg19PJuejhyAFKrf5kd1TbxvtgnuR3VrpmEMVzFWEP6dBAjWh4'
@@ -207,14 +207,14 @@ suite('index', function () {
         }
 
         // Recover the public key from the assertion response
-        const possibleKeys = lib.recoverPossiblePublicKeys(response)
+        const publicKey = lib.recoverPublicFromAssertion(response)
 
         // Verify the keys returned are the proper type
-        assert.equal(possibleKeys[0].type, KeyType.WA, 'recovered key type should be WA')
+        assert.equal(publicKey.type, KeyType.WA, 'recovered key type should be WA')
 
         // Ensure at least one of the recovered keys matches the expected key
         assert.isTrue(
-            possibleKeys.some((key) => key.equals(expectedKey)),
+            publicKey.equals(expectedKey),
             'recovered public key should equal the fully constructed original public key'
         )
     })

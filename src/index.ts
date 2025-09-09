@@ -146,9 +146,9 @@ export function verifyPublic(signature: Signature, message: Bytes, publicKey: Pu
     return curve.verify(messageDigest, {r, s}, publicKeyData as any)
 }
 
-export function recoverPossiblePublicKeys(
+export function recoverPublicFromAssertion(
     assertionResponse: AuthenticatorAssertionResponse
-): PublicKey[] {
+): PublicKey {
     const authenticatorData = Bytes.from(assertionResponse.authenticatorData)
     const clientDataJSON = Bytes.from(assertionResponse.clientDataJSON)
 
@@ -159,7 +159,6 @@ export function recoverPossiblePublicKeys(
     const decoder = new Decoder(assertionResponse.signature).derDecoder(0x30)
     const r = fixPoint(decoder.readDer(0x02))
     const s = fixPoint(decoder.readDer(0x02))
-    const keys: PublicKey[] = []
     for (let recid = 0; recid < 4; recid++) {
         try {
             const encoder = new ABIEncoder()
@@ -171,15 +170,14 @@ export function recoverPossiblePublicKeys(
 
             const signature = new Signature(KeyType.WA, encoder.getBytes())
             const key = recoverPublic(signature, message)
-            keys.push(key)
+            if (isCanonical(key.data.array)) {
+                return key
+            }
         } catch (e) {
             // Ignore errors, try next recid
         }
     }
-    if (!keys.length) {
-        throw new Error('Unable to recover any potential public keys from signature')
-    }
-    return keys
+    throw new Error('Unable to recover any potential public keys from signature')
 }
 
 function decodeAuthData(authData: Uint8Array) {
@@ -241,4 +239,20 @@ function fixPoint(x: Uint8Array) {
     }
     rv.set(x.slice(si), 32 - x.length + si)
     return rv
+}
+
+/**
+ * Here be more dragons
+ * - https://github.com/AntelopeIO/spring/blob/17ed17f6826409a998332b94074dace2cb1fdb47/libraries/libfc/src/crypto/elliptic_impl_priv.cpp#L87-L102
+ * - https://github.com/steemit/steem/issues/1944
+ * - https://github.com/EOSIO/eos/issues/6699
+ * @internal
+ */
+function isCanonical(s: Uint8Array) {
+    return (
+        !(s[0] & 0x80) &&
+        !(s[0] === 0 && !(s[1] & 0x80)) &&
+        !(s[32] & 0x80) &&
+        !(s[32] === 0 && !(s[33] & 0x80))
+    )
 }
