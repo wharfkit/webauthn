@@ -171,4 +171,51 @@ suite('index', function () {
             'recovered key from wrong message should not match'
         )
     })
+
+    test('recoverPublicFromAssertion', function () {
+        // The expected public key (this should match the key used to create the signature)
+        const expectedKey = PublicKey.from(
+            'PUB_WA_7BAnMs5fFe1g1vac4gXebMUugyZr2qzTtKNBPQYgbC7ME6ybpMrN6CMpqeDMvCPS8'
+        )
+
+        const testData = {
+            authenticatorData: 'SZYN5YgOjGh0NBcPZHZgW4/krrmihjLHmVzzuoMdl2MdAAAAAA==',
+            clientDataJSON:
+                'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiZWt1VV9YN253QXF5RU1aZ052eDFQQSIsIm9yaWdpbiI6Imh0dHBzOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2V9',
+            signature:
+                'MEUCIQC4z8hB3Zny321uEXJWq8mwnsh0RfSrPeFu0dZiveVcegIgE7ZRC5konLMZNdNbw+jUSuI3sW6xbzLo+9edcGbdb0Q=',
+        }
+
+        // Construct a mock AuthenticatorAssertionResponse
+        const authenticatorData = Buffer.from(testData.authenticatorData, 'base64')
+        const clientDataJSON = Buffer.from(testData.clientDataJSON, 'base64')
+        const signature = Buffer.from(testData.signature, 'base64')
+        const response: AuthenticatorAssertionResponse = {
+            authenticatorData: authenticatorData.buffer.slice(
+                authenticatorData.byteOffset,
+                authenticatorData.byteOffset + authenticatorData.byteLength
+            ) as ArrayBuffer,
+            clientDataJSON: clientDataJSON.buffer.slice(
+                clientDataJSON.byteOffset,
+                clientDataJSON.byteOffset + clientDataJSON.byteLength
+            ) as ArrayBuffer,
+            signature: signature.buffer.slice(
+                signature.byteOffset,
+                signature.byteOffset + signature.byteLength
+            ) as ArrayBuffer,
+            userHandle: new ArrayBuffer(0),
+        }
+
+        // Recover the public key from the assertion response
+        const publicKey = lib.recoverPublicFromAssertion(response)
+
+        // Verify the key returned is the proper type
+        assert.equal(publicKey.type, KeyType.WA, 'recovered key type should be WA')
+
+        // Ensure the recovered key matches the expected key
+        assert.isTrue(
+            publicKey.equals(expectedKey),
+            'recovered public key should equal the fully constructed original public key'
+        )
+    })
 })
