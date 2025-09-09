@@ -178,7 +178,7 @@ suite('index', function () {
             'PUB_WA_8niBKS9ccWGFwNFgg19PJuejhyAFKrf5kd1TbxvtgnuR3VrpmEMVzFWEP6dBAjWh4'
         )
 
-        const test = {
+        const testData = {
             authenticatorData: 'SZYN5YgOjGh0NBcPZHZgW4/krrmihjLHmVzzuoMdl2MdAAAAAA==',
             clientDataJSON:
                 'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiVXRYMy1NNW9FTEVqZV8tSENkSVd6dyIsIm9yaWdpbiI6Imh0dHBzOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2V9',
@@ -187,9 +187,9 @@ suite('index', function () {
         }
 
         // Construct a mock AuthenticatorAssertionResponse
-        const authenticatorData = Buffer.from(test.authenticatorData, 'base64')
-        const clientDataJSON = Buffer.from(test.clientDataJSON, 'base64')
-        const signature = Buffer.from(test.signature, 'base64')
+        const authenticatorData = Buffer.from(testData.authenticatorData, 'base64')
+        const clientDataJSON = Buffer.from(testData.clientDataJSON, 'base64')
+        const signature = Buffer.from(testData.signature, 'base64')
         const response: AuthenticatorAssertionResponse = {
             authenticatorData: authenticatorData.buffer.slice(
                 authenticatorData.byteOffset,

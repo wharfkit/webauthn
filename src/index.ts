@@ -151,73 +151,35 @@ export function recoverPossiblePublicKeys(
 ): PublicKey[] {
     const authenticatorData = Bytes.from(assertionResponse.authenticatorData)
     const clientDataJSON = Bytes.from(assertionResponse.clientDataJSON)
+
     const message = new Bytes()
     message.append(authenticatorData)
     message.append(Checksum256.hash(clientDataJSON))
-    const messageDigest = Checksum256.hash(message).array
 
-    const curve = new ec('p256')
     const decoder = new Decoder(assertionResponse.signature).derDecoder(0x30)
     const r = fixPoint(decoder.readDer(0x02))
     const s = fixPoint(decoder.readDer(0x02))
     const keys: PublicKey[] = []
     for (let recid = 0; recid < 4; recid++) {
         try {
-            const point = curve.recoverPubKey(messageDigest, {r, s}, recid)
-            const compressedKeyPoint = new Uint8Array(point.encodeCompressed())
-
             const encoder = new ABIEncoder()
             encoder.writeByte(recid + 31)
             encoder.writeArray(r)
             encoder.writeArray(s)
             authenticatorData.toABI(encoder)
             clientDataJSON.toABI(encoder)
+
             const signature = new Signature(KeyType.WA, encoder.getBytes())
-
-            const extraDataView = signature.data.array.subarray(65)
-            const extraDataDecoder = new ABIDecoder(extraDataView)
-
-            const authenticatorDataBytes = Bytes.fromABI(extraDataDecoder)
-            const clientDataJSONBytes = Bytes.fromABI(extraDataDecoder)
-
-            const clientData = decodeBinaryJson(clientDataJSONBytes.array.slice().buffer)
-            const origin = clientData.origin
-            if (typeof origin !== 'string') {
-                throw new Error('Missing origin in client data during recovery')
-            }
-            const originUrl = new URL(origin)
-            if (originUrl.protocol !== 'https:') {
-                throw new Error('WebAuthn keys require https')
-            }
-
-            const authDataForFlagsDecoder = new Decoder(authenticatorDataBytes.array)
-            if (!authDataForFlagsDecoder.canRead(32 + 1)) {
-                throw new Error('Authenticator data is too short to read flags.')
-            }
-            authDataForFlagsDecoder.readArray(32)
-            const flags = authDataForFlagsDecoder.readByte()
-
-            const abiEncoder = new ABIEncoder()
-            abiEncoder.writeArray(compressedKeyPoint)
-
-            if (flags & 0x01 /* user present */) {
-                abiEncoder.writeByte(0x01)
-            } else if (flags & 0x04 /* user verified */) {
-                abiEncoder.writeByte(0x02)
-            } else {
-                abiEncoder.writeByte(0x00)
-            }
-            abiEncoder.writeString(originUrl.hostname)
-
-            keys.push(new PublicKey(KeyType.WA, abiEncoder.getBytes()))
+            const key = recoverPublic(signature, message)
+            keys.push(key)
         } catch (e) {
             // Ignore errors, try next recid
         }
     }
-    if (keys.length > 0) {
-        return keys
+    if (!keys.length) {
+        throw new Error('Unable to recover any potential public keys from signature')
     }
-    throw new Error('Unable to recover any potential public keys from signature')
+    return keys
 }
 
 function decodeAuthData(authData: Uint8Array) {
