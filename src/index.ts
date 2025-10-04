@@ -41,7 +41,7 @@ export function createPublic(attestationResponse: {
     const abiEncoder = new ABIEncoder()
     abiEncoder.writeArray(compressed)
     if (authData.flags & 0x01 /* user present */) {
-        abiEncoder.writeByte(0x01)
+        abiEncoder.writeByte(0x02)
     } else if (authData.flags & 0x04 /* user verified */) {
         abiEncoder.writeByte(0x02)
     } else {
