@@ -12,10 +12,13 @@ import {ec} from 'elliptic'
 
 import {Decoder} from './decoder'
 
-export function createPublic(attestationResponse: {
-    attestationObject: ArrayBuffer
-    clientDataJSON: ArrayBuffer
-}) {
+export function createPublic(
+    attestationResponse: {
+        attestationObject: ArrayBuffer
+        clientDataJSON: ArrayBuffer
+    },
+    logging = false
+) {
     const clientData = decodeBinaryJson(attestationResponse.clientDataJSON)
     const origin = clientData.origin
     if (typeof origin !== 'string') {
@@ -40,16 +43,7 @@ export function createPublic(attestationResponse: {
 
     const abiEncoder = new ABIEncoder()
     abiEncoder.writeArray(compressed)
-
-    let byte = 0x00
-    if (authData.flags & 0x01 /* user present */) {
-        byte = 0x01
-    }
-    if (authData.flags & 0x04 /* user verified */) {
-        byte = 0x02
-    }
-    abiEncoder.writeByte(byte)
-
+    abiEncoder.writeByte(getUserDataFlag(authData.flags, logging))
     abiEncoder.writeString(originUrl.hostname)
 
     return new PublicKey(KeyType.WA, abiEncoder.getBytes())
@@ -89,7 +83,7 @@ export function createSignature(
     return new Signature(KeyType.WA, encoder.getBytes())
 }
 
-export function recoverPublic(signature: Signature, message: Bytes): PublicKey {
+export function recoverPublic(signature: Signature, message: Bytes, logging = false): PublicKey {
     const signatureData = signature.data.array
     const messageDigest = Checksum256.hash(message).array
 
@@ -126,18 +120,34 @@ export function recoverPublic(signature: Signature, message: Bytes): PublicKey {
     abiEncoder.writeArray(compressedKeyPoint)
 
     const flags = authDataForFlagsDecoder.readByte()
-    let byte = 0x00
-    if (flags & 0x01 /* user present */) {
-        byte = 0x01
-    }
-    if (flags & 0x04 /* user verified */) {
-        byte = 0x02
-    }
-    abiEncoder.writeByte(byte)
+    abiEncoder.writeByte(getUserDataFlag(flags, logging))
 
     abiEncoder.writeString(originUrl.hostname)
 
     return new PublicKey(KeyType.WA, abiEncoder.getBytes())
+}
+
+export function getUserDataFlag(flags: number, logging = false): number {
+    let byte = 0x00
+    if (flags & 0x01 /* user present */) {
+        if (logging) {
+            // eslint-disable-next-line no-console
+            console.info('present flag', flags)
+        }
+        byte = 0x01
+    }
+    if (flags & 0x04 /* user verified */) {
+        if (logging) {
+            // eslint-disable-next-line no-console
+            console.info('verified flag', flags)
+        }
+        byte = 0x02
+    }
+    if (logging) {
+        // eslint-disable-next-line no-console
+        console.info('final user data flag:', byte)
+    }
+    return byte
 }
 
 export function verifyPublic(signature: Signature, message: Bytes, publicKey: PublicKey) {
