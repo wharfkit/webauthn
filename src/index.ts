@@ -40,13 +40,16 @@ export function createPublic(attestationResponse: {
 
     const abiEncoder = new ABIEncoder()
     abiEncoder.writeArray(compressed)
+
+    let byte = 0x00
     if (authData.flags & 0x01 /* user present */) {
-        abiEncoder.writeByte(0x01)
-    } else if (authData.flags & 0x04 /* user verified */) {
-        abiEncoder.writeByte(0x02)
-    } else {
-        abiEncoder.writeByte(0x00)
+        byte = 0x01
     }
+    if (authData.flags & 0x04 /* user verified */) {
+        byte = 0x02
+    }
+    abiEncoder.writeByte(byte)
+
     abiEncoder.writeString(originUrl.hostname)
 
     return new PublicKey(KeyType.WA, abiEncoder.getBytes())
@@ -118,18 +121,20 @@ export function recoverPublic(signature: Signature, message: Bytes): PublicKey {
         throw new Error('Authenticator data is too short to read flags.')
     }
     authDataForFlagsDecoder.readArray(32)
-    const flags = authDataForFlagsDecoder.readByte()
 
     const abiEncoder = new ABIEncoder()
     abiEncoder.writeArray(compressedKeyPoint)
 
+    const flags = authDataForFlagsDecoder.readByte()
+    let byte = 0x00
     if (flags & 0x01 /* user present */) {
-        abiEncoder.writeByte(0x01)
-    } else if (flags & 0x04 /* user verified */) {
-        abiEncoder.writeByte(0x02)
-    } else {
-        abiEncoder.writeByte(0x00)
+        byte = 0x01
     }
+    if (flags & 0x04 /* user verified */) {
+        byte = 0x02
+    }
+    abiEncoder.writeByte(byte)
+
     abiEncoder.writeString(originUrl.hostname)
 
     return new PublicKey(KeyType.WA, abiEncoder.getBytes())
