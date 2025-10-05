@@ -162,7 +162,8 @@ export function verifyPublic(signature: Signature, message: Bytes, publicKey: Pu
 }
 
 export function recoverPotentialPublicKeysFromAssertion(
-    assertionResponse: AuthenticatorAssertionResponse
+    assertionResponse: AuthenticatorAssertionResponse,
+    logging = false
 ): PublicKey[] {
     const authenticatorData = Bytes.from(assertionResponse.authenticatorData)
     const clientDataJSON = Bytes.from(assertionResponse.clientDataJSON)
@@ -185,7 +186,7 @@ export function recoverPotentialPublicKeysFromAssertion(
             clientDataJSON.toABI(encoder)
 
             const signature = new Signature(KeyType.WA, encoder.getBytes())
-            const key = recoverPublic(signature, message)
+            const key = recoverPublic(signature, message, logging)
             keys.push(key)
         } catch (e) {
             // Ignore errors, try next recid

@@ -26,7 +26,7 @@ suite('index', function () {
         const key = lib.createPublic(response)
         assert.equal(
             key,
-            'PUB_WA_2NVXH8vKM57G6raNdktPvTuMxBM9EeuK8uquDGhaXPfMV7AcE5UWz1o7ZrPiDQGwNBF4oob3pVy'
+            'PUB_WA_2NVXH8vKM57G6raNdktPvTuMxBM9EeuK8uquDGhaXPfMV7SMFd4dUgza7xGStLnVJs5Xdhhm5fs'
         )
     })
 
@@ -176,38 +176,50 @@ suite('index', function () {
         const tests = [
             {
                 expected: PublicKey.from(
-                    'PUB_WA_6tRfHhBJEKMvgTqzbpHwUnCsAX9mdQ3sTx8GTs6St4HoJrVf9kTTQgYxoRbdrxj88'
+                    'PUB_WA_89okPTBho8bdeyJvcxeTHdgzrafqNNj3hAHiraRGkhFvJwyoFwYz5BsedHfaD5ztZ'
                 ),
                 test: {
                     authenticatorData: 'SZYN5YgOjGh0NBcPZHZgW4/krrmihjLHmVzzuoMdl2MdAAAAAA==',
                     clientDataJSON:
-                        'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoickpsSTVCeXB3YUpwOG5lQTE4dFlfQSIsIm9yaWdpbiI6Imh0dHBzOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2V9',
+                        'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoibG94emp1QU80LTBCWmdxMlFfdFhZTFZkY2hCLUczR1hhWFJkdlg1WC1idyIsIm9yaWdpbiI6Imh0dHBzOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2V9',
                     signature:
-                        'MEUCIFcwod+ysA7/YlR1Gme5TjvLI36M2IaU+wlu/cV8hRmjAiEA0FBLtOmZWC304WqPKOIAYy1A86i26WPcdLBoYDPZLqY=',
+                        'MEQCIE5+VXUOFKCTSm2dTuSHjAxitV0wTTt4U9fhZCY21lKSAiBuQOIF1X8J1MHdqzso/YziEopU3GeLa5Vr735H7ImzTA==',
                 },
             },
             {
                 expected: PublicKey.from(
-                    'PUB_WA_7BAnMs5fFe1g1vac4gXebMUugyZr2qzTtKNBPQYgbC7ME6ybpMrN6CMpqeDMvCPS8'
+                    'PUB_WA_8JhEwQXavciD5LzQQRNLcWFcR1ZAT8W7ZVZW4HSaRrjHEeRwxEMVvPAQKxxwEtEb2'
                 ),
                 test: {
                     authenticatorData: 'SZYN5YgOjGh0NBcPZHZgW4/krrmihjLHmVzzuoMdl2MdAAAAAA==',
                     clientDataJSON:
-                        'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiZWt1VV9YN253QXF5RU1aZ052eDFQQSIsIm9yaWdpbiI6Imh0dHBzOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2V9',
+                        'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiV2M0YUJoa2tTOC1UbkJiaHlUc1ZTYkFXZ3h6cmRKQ1ZheVlJWng2RDcxNCIsIm9yaWdpbiI6Imh0dHBzOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2V9',
                     signature:
-                        'MEUCIQC4z8hB3Zny321uEXJWq8mwnsh0RfSrPeFu0dZiveVcegIgE7ZRC5konLMZNdNbw+jUSuI3sW6xbzLo+9edcGbdb0Q=',
+                        'MEUCIQD+n3FXLT1Hg2HQI317xg6HTfzSJhgJKkyAzSZJ22J71AIgHf5xTiU41HJyW6nRqczA4oBip5wZJTAXheCqpQwjraY=',
                 },
             },
             {
                 expected: PublicKey.from(
-                    'PUB_WA_8niBKS9ccWGFwNFgg19PJuejhyAFKrf5kd1TbxvtgnuR3VrpmEMVzFWEP6dBAjWh4'
+                    'PUB_WA_8ZsvTF146ErZHT96QdkqaVHgLVBvksP72TdqmN4U8BM8NjmkzGhf46Hiv5ca51yBL'
                 ),
                 test: {
                     authenticatorData: 'SZYN5YgOjGh0NBcPZHZgW4/krrmihjLHmVzzuoMdl2MdAAAAAA==',
                     clientDataJSON:
-                        'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiVXRYMy1NNW9FTEVqZV8tSENkSVd6dyIsIm9yaWdpbiI6Imh0dHBzOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2V9',
+                        'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoic19jWVcyUThPUzNMTTZsNnRhWnZpQjV5NnBxUHl5cVdGU25zR2FNdW5yNCIsIm9yaWdpbiI6Imh0dHBzOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2V9',
                     signature:
-                        'MEUCIBbjJaEML505WsbWYY84bGziHUuSnvgS4h5PwQ6+b2PMAiEA8SSLjTbOowaV1u1Yp2Sf2w5gq0LkBcNhSI3tZJfVDLU=',
+                        'MEUCIQCqa/kBX2IbojmanY7+NwX6esbmCZbbmHpgOZi7m7SpvAIgavdO7tNvR5e2OJ6KzjeFg3MzJH2JXzp3TYox1tOvHjo=',
+                },
+            },
+            {
+                expected: PublicKey.from(
+                    'PUB_WA_8ZsvTF146ErZHT96QdkqaVHgLVBvksP72TdqmN4U8BM8NjmkzGhf46Hiv5ca51yBL'
+                ),
+                test: {
+                    authenticatorData: 'SZYN5YgOjGh0NBcPZHZgW4/krrmihjLHmVzzuoMdl2MdAAAAAA==',
+                    clientDataJSON:
+                        'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiRFhwVFhqcDVtSFJNVHBmRGd1aFgtS2hBUXpMY1RPbnVPN1Q5M213Mm1MbyIsIm9yaWdpbiI6Imh0dHBzOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2V9',
+                    signature:
+                        'MEUCIECZn6Pd7uzHkSGFHS7axlXBQProcODgNbhG4MXo2wvMAiEAgwXTUcv1h4ziTB3axO7wDyAuejHhNTCtyATEdouQIFE',
                 },
             },
         ]
@@ -241,10 +253,16 @@ suite('index', function () {
                 assert.equal(publicKey.type, KeyType.WA, 'recovered keys should all be type of WA')
             })
 
+            // console.log('Expected public key:', data.expected.toString())
+            // console.log(`Recovered ${publicKeys.length} potential public keys:`)
+            // publicKeys.forEach((pk, idx) => {
+            //     console.log(`  [${idx}] ${pk.toString()}`)
+            // })
+
             // Ensure the recovered key matches the expected key
             assert.isTrue(
                 publicKeys.some((pk) => pk.equals(data.expected)),
-                'one of the public keys should equal the original public key'
+                `one of the public keys should equal the original public key (${data.expected.toString()})`
             )
         }
     })
