@@ -8,7 +8,7 @@ import {
     Signature,
 } from '@wharfkit/antelope'
 import {decode as cborDecode} from 'cborg'
-import {ec} from 'elliptic'
+import elliptic from 'elliptic'
 
 import {Decoder} from './decoder'
 
@@ -19,6 +19,7 @@ export function createPublic(
     },
     logging = false
 ) {
+const {ec} = elliptic
     const clientData = decodeBinaryJson(attestationResponse.clientDataJSON)
     const origin = clientData.origin
     if (typeof origin !== 'string') {
