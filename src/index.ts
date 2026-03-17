@@ -12,6 +12,8 @@ import elliptic from 'elliptic'
 
 import {Decoder} from './decoder'
 
+const {ec} = elliptic
+
 export function createPublic(
     attestationResponse: {
         attestationObject: ArrayBuffer
@@ -19,7 +21,6 @@ export function createPublic(
     },
     logging = false
 ) {
-const {ec} = elliptic
     const clientData = decodeBinaryJson(attestationResponse.clientDataJSON)
     const origin = clientData.origin
     if (typeof origin !== 'string') {
