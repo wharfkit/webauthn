@@ -246,15 +246,14 @@ function getCborItemLength(data: Uint8Array, start: number): number {
             return pos + value - start
         }
 
-        while (true) {
-            if (pos >= data.length) {
-                throw new Error('Unterminated indefinite CBOR string')
-            }
+        while (pos < data.length) {
             if (data[pos] === 0xff) {
                 return pos + 1 - start
             }
             pos += getCborItemLength(data, pos)
         }
+
+        throw new Error('Unterminated indefinite CBOR string')
     }
 
     if (majorType === 4 || majorType === 5) {
@@ -266,15 +265,14 @@ function getCborItemLength(data: Uint8Array, start: number): number {
             return pos - start
         }
 
-        while (true) {
-            if (pos >= data.length) {
-                throw new Error('Unterminated indefinite CBOR container')
-            }
+        while (pos < data.length) {
             if (data[pos] === 0xff) {
                 return pos + 1 - start
             }
             pos += getCborItemLength(data, pos)
         }
+
+        throw new Error('Unterminated indefinite CBOR container')
     }
 
     if (majorType === 6) {
