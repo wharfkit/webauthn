@@ -712,10 +712,10 @@ caniuse-lite@^1.0.30001265:
   resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001270.tgz#cc9c37a4ec5c1a8d616fc7bace902bb053b0cdea"
   integrity sha512-TcIC7AyNWXhcOmv2KftOl1ShFAaHQYcB/EPL/hEyMrcS7ZX0/DvV1aoy6BzV0+16wTpoAyTMGDNAJfSqS/rz7A==
 
-cborg@^1.5.0:
-  version "1.5.2"
-  resolved "https://registry.yarnpkg.com/cborg/-/cborg-1.5.2.tgz#87964ce85bcb894c8175f3f34eed3fd512aaff6e"
-  integrity sha512-w7RJ0Hm29B/Y5kvUXrP+TfgvBmkRUwYVr8hD63z5MlIGdlelhzNMCV/xKbG+yAyp4euJrqxPsQMXGyJKnfGhPQ==
+cborg@^4.5.8:
+  version "4.5.8"
+  resolved "https://registry.yarnpkg.com/cborg/-/cborg-4.5.8.tgz#49cf664711237e4eb6197c841a2de79163e58c62"
+  integrity sha512-6/viltD51JklRhq4L7jC3zgy6gryuG5xfZ3kzpE+PravtyeQLeQmCYLREhQH7pWENg5pY4Yu/XCd6a7dKScVlw==
 
 chai@^4.3.4:
   version "4.3.4"

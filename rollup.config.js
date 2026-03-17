@@ -19,7 +19,9 @@ const banner = `
  */
 `.trim()
 
-const external = Object.keys(pkg.dependencies).filter((dependency) => dependency !== 'elliptic')
+const external = Object.keys(pkg.dependencies).filter(
+    (dependency) => dependency !== 'cborg' && dependency !== 'elliptic'
+)
 export default [
     {
         input: 'src/index.ts',

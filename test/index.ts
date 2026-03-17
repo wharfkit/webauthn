@@ -1,8 +1,10 @@
 import {assert} from 'chai'
 import {Bytes, Checksum256, KeyType, PublicKey} from '@wharfkit/antelope'
-import {decode as cborDecode, encode as cborEncode} from 'cborg'
 
-import * as lib from '$lib'
+import * as lib from '../lib/eosio-webauthn.js'
+
+const loadCborg = () =>
+    new Function('return import("cborg")')() as Promise<typeof import('cborg')>
 
 suite('index', function () {
     this.timeout(5000)
@@ -31,7 +33,9 @@ suite('index', function () {
         )
     })
 
-    test('createPublic with extension data', function () {
+    test('createPublic with extension data', async function () {
+        const {decode: cborDecode, encode: cborEncode} = await loadCborg()
+
         const normalResponse = {
             attestationObject: Bytes.from(
                 'a363666d74646e6f6e656761747453746d74a068617574684461746158980511e9517abcfeaa5db71dddb8ba831' +

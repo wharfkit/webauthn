@@ -7,7 +7,7 @@ import {
     PublicKey,
     Signature,
 } from '@wharfkit/antelope'
-import {decode as cborDecode} from 'cborg'
+import {decode as cborDecode, decodeFirst} from 'cborg'
 import elliptic from 'elliptic'
 
 import {Decoder} from './decoder'
@@ -208,7 +208,10 @@ function decodeAuthData(authData: Uint8Array) {
     const counter = decoder.readNum(4)
     const aaguid = decoder.readArray(16)
     const credentialId = decoder.readArray(decoder.readNum(2))
-    const credentialPublicKey = decodeFirstCborItem(decoder.remainder()) as Map<number, any>
+    const [credentialPublicKey] = decodeFirst(decoder.remainder(), {useMaps: true}) as [
+        Map<number, any>,
+        Uint8Array
+    ]
 
     return {
         rpIdHash,
@@ -217,135 +220,6 @@ function decodeAuthData(authData: Uint8Array) {
         aaguid,
         credentialId,
         credentialPublicKey,
-    }
-}
-
-function decodeFirstCborItem(data: Uint8Array): unknown {
-    const length = getCborItemLength(data, 0)
-    return cborDecode(data.subarray(0, length), {useMaps: true})
-}
-
-function getCborItemLength(data: Uint8Array, start: number): number {
-    if (start >= data.length) {
-        throw new Error('Unexpected end of CBOR data')
-    }
-
-    const first = data[start]
-    const majorType = first >> 5
-    const additional = first & 0x1f
-
-    const {value, bytesRead, indefinite} = readCborLength(data, start, additional)
-    let pos = start + 1 + bytesRead
-
-    if (majorType === 0 || majorType === 1) {
-        return pos - start
-    }
-
-    if (majorType === 2 || majorType === 3) {
-        if (!indefinite) {
-            return pos + value - start
-        }
-
-        while (pos < data.length) {
-            if (data[pos] === 0xff) {
-                return pos + 1 - start
-            }
-            pos += getCborItemLength(data, pos)
-        }
-
-        throw new Error('Unterminated indefinite CBOR string')
-    }
-
-    if (majorType === 4 || majorType === 5) {
-        const itemCount = indefinite ? -1 : majorType === 5 ? value * 2 : value
-        if (!indefinite) {
-            for (let i = 0; i < itemCount; i++) {
-                pos += getCborItemLength(data, pos)
-            }
-            return pos - start
-        }
-
-        while (pos < data.length) {
-            if (data[pos] === 0xff) {
-                return pos + 1 - start
-            }
-            pos += getCborItemLength(data, pos)
-        }
-
-        throw new Error('Unterminated indefinite CBOR container')
-    }
-
-    if (majorType === 6) {
-        return pos + getCborItemLength(data, pos) - start
-    }
-
-    if (majorType === 7) {
-        if (additional < 24 || additional === 31) {
-            return pos - start
-        }
-        if (additional === 24) {
-            return pos + 1 - start
-        }
-        if (additional === 25) {
-            return pos + 2 - start
-        }
-        if (additional === 26) {
-            return pos + 4 - start
-        }
-        if (additional === 27) {
-            return pos + 8 - start
-        }
-    }
-
-    throw new Error(`Unsupported CBOR major type: ${majorType}`)
-}
-
-function readCborLength(
-    data: Uint8Array,
-    start: number,
-    additional: number
-): {value: number; bytesRead: number; indefinite: boolean} {
-    if (additional < 24) {
-        return {value: additional, bytesRead: 0, indefinite: false}
-    }
-
-    if (additional === 24) {
-        ensureCborBytes(data, start + 1, 1)
-        return {value: data[start + 1], bytesRead: 1, indefinite: false}
-    }
-
-    if (additional === 25) {
-        ensureCborBytes(data, start + 1, 2)
-        const view = new DataView(data.buffer, data.byteOffset + start + 1, 2)
-        return {value: view.getUint16(0), bytesRead: 2, indefinite: false}
-    }
-
-    if (additional === 26) {
-        ensureCborBytes(data, start + 1, 4)
-        const view = new DataView(data.buffer, data.byteOffset + start + 1, 4)
-        return {value: view.getUint32(0), bytesRead: 4, indefinite: false}
-    }
-
-    if (additional === 27) {
-        ensureCborBytes(data, start + 1, 8)
-        const view = new DataView(data.buffer, data.byteOffset + start + 1, 8)
-        const value = Number(view.getBigUint64(0))
-        if (!Number.isSafeInteger(value)) {
-            throw new Error('CBOR length exceeds safe integer range')
-        }
-        return {value, bytesRead: 8, indefinite: false}
-    }
-
-    if (additional === 31) {
-        return {value: 0, bytesRead: 0, indefinite: true}
-    }
-
-    throw new Error(`Invalid CBOR additional information: ${additional}`)
-}
-
-function ensureCborBytes(data: Uint8Array, start: number, length: number): void {
-    if (start + length > data.length) {
-        throw new Error('Unexpected end of CBOR data')
     }
 }
 
