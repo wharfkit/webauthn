@@ -7,10 +7,12 @@ import {
     PublicKey,
     Signature,
 } from '@wharfkit/antelope'
-import {decode as cborDecode} from 'cborg'
-import {ec} from 'elliptic'
+import {decode as cborDecode, decodeFirst} from 'cborg'
+import elliptic from 'elliptic'
 
 import {Decoder} from './decoder'
+
+const {ec} = elliptic
 
 export function createPublic(
     attestationResponse: {
@@ -206,7 +208,10 @@ function decodeAuthData(authData: Uint8Array) {
     const counter = decoder.readNum(4)
     const aaguid = decoder.readArray(16)
     const credentialId = decoder.readArray(decoder.readNum(2))
-    const credentialPublicKey = cborDecode(decoder.remainder(), {useMaps: true}) as Map<number, any>
+    const [credentialPublicKey] = decodeFirst(decoder.remainder(), {useMaps: true}) as [
+        Map<number, any>,
+        Uint8Array
+    ]
 
     return {
         rpIdHash,

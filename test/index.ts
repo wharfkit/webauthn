@@ -1,7 +1,10 @@
 import {assert} from 'chai'
 import {Bytes, Checksum256, KeyType, PublicKey} from '@wharfkit/antelope'
 
-import * as lib from '$lib'
+import * as lib from '../lib/eosio-webauthn.js'
+
+const loadCborg = () =>
+    new Function('return import("cborg")')() as Promise<typeof import('cborg')>
 
 suite('index', function () {
     this.timeout(5000)
@@ -28,6 +31,52 @@ suite('index', function () {
             key,
             'PUB_WA_2NVXH8vKM57G6raNdktPvTuMxBM9EeuK8uquDGhaXPfMV7SMFd4dUgza7xGStLnVJs5Xdhhm5fs'
         )
+    })
+
+    test('createPublic with extension data', async function () {
+        const {decode: cborDecode, encode: cborEncode} = await loadCborg()
+
+        const normalResponse = {
+            attestationObject: Bytes.from(
+                'a363666d74646e6f6e656761747453746d74a068617574684461746158980511e9517abcfeaa5db71dddb8ba831' +
+                    'd0513ecdb1bd5f5907421ffa5c909ea3045000000000000000000000000000000000000000000149e093bb39d81' +
+                    'de544b40af3fd3894c9a6d5214eba5010203262001215820d9eee421c986d509f9e575c08f4a3ab45bca6896a69' +
+                    'fb4e83379a8bc9fb6af982258202ddb029af756c10243446b888892d91f82e63c101d5715308cb0155900ec862f'
+            ).array.buffer,
+            clientDataJSON: Bytes.from(
+                '7b2274797065223a22776562617574686e2e637265617465222c2263' +
+                    '68616c6c656e6765223a2276755f367a694b2d375f724f76755f367a' +
+                    '7237762d73346976755f367a7237762d7334222c226f726967696e22' +
+                    '3a2268747470733a2f2f79656c6c6f776167656e74732e636f6d227d'
+            ).array.buffer,
+        }
+
+        const attestationObject = cborDecode(new Uint8Array(normalResponse.attestationObject), {
+            useMaps: true,
+        }) as Map<string, unknown>
+
+        const authData = new Uint8Array(attestationObject.get('authData') as Uint8Array)
+        authData[32] = authData[32] | 0x80
+
+        const extensions = cborEncode(new Map([['credProps', new Map([['rk', true]])]]))
+        const authDataWithExtensions = new Uint8Array(authData.length + extensions.length)
+        authDataWithExtensions.set(authData, 0)
+        authDataWithExtensions.set(extensions, authData.length)
+
+        attestationObject.set('authData', authDataWithExtensions)
+        const encodedAttestationObject = cborEncode(attestationObject)
+        const responseWithExtensions = {
+            ...normalResponse,
+            attestationObject: encodedAttestationObject.buffer.slice(
+                encodedAttestationObject.byteOffset,
+                encodedAttestationObject.byteOffset + encodedAttestationObject.byteLength
+            ),
+        }
+
+        const normalKey = lib.createPublic(normalResponse)
+        const extensionKey = lib.createPublic(responseWithExtensions)
+
+        assert.equal(extensionKey.toString(), normalKey.toString())
     })
 
     test('createSignature', function () {
