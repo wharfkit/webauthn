@@ -7,15 +7,20 @@ import {
     PublicKey,
     Signature,
 } from '@wharfkit/antelope'
-import {decode as cborDecode} from 'cborg'
-import {ec} from 'elliptic'
+import {decode as cborDecode, decodeFirst} from 'cborg'
+import elliptic from 'elliptic'
 
 import {Decoder} from './decoder'
 
-export function createPublic(attestationResponse: {
-    attestationObject: ArrayBuffer
-    clientDataJSON: ArrayBuffer
-}) {
+const {ec} = elliptic
+
+export function createPublic(
+    attestationResponse: {
+        attestationObject: ArrayBuffer
+        clientDataJSON: ArrayBuffer
+    },
+    logging = false
+) {
     const clientData = decodeBinaryJson(attestationResponse.clientDataJSON)
     const origin = clientData.origin
     if (typeof origin !== 'string') {
@@ -40,13 +45,7 @@ export function createPublic(attestationResponse: {
 
     const abiEncoder = new ABIEncoder()
     abiEncoder.writeArray(compressed)
-    if (authData.flags & 0x01 /* user present */) {
-        abiEncoder.writeByte(0x01)
-    } else if (authData.flags & 0x04 /* user verified */) {
-        abiEncoder.writeByte(0x02)
-    } else {
-        abiEncoder.writeByte(0x00)
-    }
+    abiEncoder.writeByte(getUserDataFlag(authData.flags, logging))
     abiEncoder.writeString(originUrl.hostname)
 
     return new PublicKey(KeyType.WA, abiEncoder.getBytes())
@@ -86,7 +85,7 @@ export function createSignature(
     return new Signature(KeyType.WA, encoder.getBytes())
 }
 
-export function recoverPublic(signature: Signature, message: Bytes): PublicKey {
+export function recoverPublic(signature: Signature, message: Bytes, logging = false): PublicKey {
     const signatureData = signature.data.array
     const messageDigest = Checksum256.hash(message).array
 
@@ -118,21 +117,39 @@ export function recoverPublic(signature: Signature, message: Bytes): PublicKey {
         throw new Error('Authenticator data is too short to read flags.')
     }
     authDataForFlagsDecoder.readArray(32)
-    const flags = authDataForFlagsDecoder.readByte()
 
     const abiEncoder = new ABIEncoder()
     abiEncoder.writeArray(compressedKeyPoint)
 
-    if (flags & 0x01 /* user present */) {
-        abiEncoder.writeByte(0x01)
-    } else if (flags & 0x04 /* user verified */) {
-        abiEncoder.writeByte(0x02)
-    } else {
-        abiEncoder.writeByte(0x00)
-    }
+    const flags = authDataForFlagsDecoder.readByte()
+    abiEncoder.writeByte(getUserDataFlag(flags, logging))
+
     abiEncoder.writeString(originUrl.hostname)
 
     return new PublicKey(KeyType.WA, abiEncoder.getBytes())
+}
+
+export function getUserDataFlag(flags: number, logging = false): number {
+    let byte = 0x00
+    if (flags & 0x01 /* user present */) {
+        if (logging) {
+            // eslint-disable-next-line no-console
+            console.info('present flag', flags)
+        }
+        byte = 0x01
+    }
+    if (flags & 0x04 /* user verified */) {
+        if (logging) {
+            // eslint-disable-next-line no-console
+            console.info('verified flag', flags)
+        }
+        byte = 0x02
+    }
+    if (logging) {
+        // eslint-disable-next-line no-console
+        console.info('final user data flag:', byte)
+    }
+    return byte
 }
 
 export function verifyPublic(signature: Signature, message: Bytes, publicKey: PublicKey) {
@@ -146,6 +163,43 @@ export function verifyPublic(signature: Signature, message: Bytes, publicKey: Pu
     return curve.verify(messageDigest, {r, s}, publicKeyData as any)
 }
 
+export function recoverPotentialPublicKeysFromAssertion(
+    assertionResponse: AuthenticatorAssertionResponse,
+    logging = false
+): PublicKey[] {
+    const authenticatorData = Bytes.from(assertionResponse.authenticatorData)
+    const clientDataJSON = Bytes.from(assertionResponse.clientDataJSON)
+
+    const message = new Bytes()
+    message.append(authenticatorData)
+    message.append(Checksum256.hash(clientDataJSON))
+
+    const decoder = new Decoder(assertionResponse.signature).derDecoder(0x30)
+    const r = fixPoint(decoder.readDer(0x02))
+    const s = fixPoint(decoder.readDer(0x02))
+    const keys: PublicKey[] = []
+    for (let recid = 0; recid < 4; recid++) {
+        try {
+            const encoder = new ABIEncoder()
+            encoder.writeByte(recid + 31)
+            encoder.writeArray(r)
+            encoder.writeArray(s)
+            authenticatorData.toABI(encoder)
+            clientDataJSON.toABI(encoder)
+
+            const signature = new Signature(KeyType.WA, encoder.getBytes())
+            const key = recoverPublic(signature, message, logging)
+            keys.push(key)
+        } catch (e) {
+            // Ignore errors, try next recid
+        }
+    }
+    if (!keys.length) {
+        throw new Error('Unable to recover any potential public keys from signature')
+    }
+    return keys
+}
+
 function decodeAuthData(authData: Uint8Array) {
     const decoder = new Decoder(authData)
 
@@ -154,7 +208,10 @@ function decodeAuthData(authData: Uint8Array) {
     const counter = decoder.readNum(4)
     const aaguid = decoder.readArray(16)
     const credentialId = decoder.readArray(decoder.readNum(2))
-    const credentialPublicKey = cborDecode(decoder.remainder(), {useMaps: true}) as Map<number, any>
+    const [credentialPublicKey] = decodeFirst(decoder.remainder(), {useMaps: true}) as [
+        Map<number, any>,
+        Uint8Array
+    ]
 
     return {
         rpIdHash,

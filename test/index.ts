@@ -1,7 +1,10 @@
 import {assert} from 'chai'
 import {Bytes, Checksum256, KeyType, PublicKey} from '@wharfkit/antelope'
 
-import * as lib from '$lib'
+import * as lib from '../lib/eosio-webauthn.js'
+
+const loadCborg = () =>
+    new Function('return import("cborg")')() as Promise<typeof import('cborg')>
 
 suite('index', function () {
     this.timeout(5000)
@@ -26,8 +29,54 @@ suite('index', function () {
         const key = lib.createPublic(response)
         assert.equal(
             key,
-            'PUB_WA_2NVXH8vKM57G6raNdktPvTuMxBM9EeuK8uquDGhaXPfMV7AcE5UWz1o7ZrPiDQGwNBF4oob3pVy'
+            'PUB_WA_2NVXH8vKM57G6raNdktPvTuMxBM9EeuK8uquDGhaXPfMV7SMFd4dUgza7xGStLnVJs5Xdhhm5fs'
         )
+    })
+
+    test('createPublic with extension data', async function () {
+        const {decode: cborDecode, encode: cborEncode} = await loadCborg()
+
+        const normalResponse = {
+            attestationObject: Bytes.from(
+                'a363666d74646e6f6e656761747453746d74a068617574684461746158980511e9517abcfeaa5db71dddb8ba831' +
+                    'd0513ecdb1bd5f5907421ffa5c909ea3045000000000000000000000000000000000000000000149e093bb39d81' +
+                    'de544b40af3fd3894c9a6d5214eba5010203262001215820d9eee421c986d509f9e575c08f4a3ab45bca6896a69' +
+                    'fb4e83379a8bc9fb6af982258202ddb029af756c10243446b888892d91f82e63c101d5715308cb0155900ec862f'
+            ).array.buffer,
+            clientDataJSON: Bytes.from(
+                '7b2274797065223a22776562617574686e2e637265617465222c2263' +
+                    '68616c6c656e6765223a2276755f367a694b2d375f724f76755f367a' +
+                    '7237762d73346976755f367a7237762d7334222c226f726967696e22' +
+                    '3a2268747470733a2f2f79656c6c6f776167656e74732e636f6d227d'
+            ).array.buffer,
+        }
+
+        const attestationObject = cborDecode(new Uint8Array(normalResponse.attestationObject), {
+            useMaps: true,
+        }) as Map<string, unknown>
+
+        const authData = new Uint8Array(attestationObject.get('authData') as Uint8Array)
+        authData[32] = authData[32] | 0x80
+
+        const extensions = cborEncode(new Map([['credProps', new Map([['rk', true]])]]))
+        const authDataWithExtensions = new Uint8Array(authData.length + extensions.length)
+        authDataWithExtensions.set(authData, 0)
+        authDataWithExtensions.set(extensions, authData.length)
+
+        attestationObject.set('authData', authDataWithExtensions)
+        const encodedAttestationObject = cborEncode(attestationObject)
+        const responseWithExtensions = {
+            ...normalResponse,
+            attestationObject: encodedAttestationObject.buffer.slice(
+                encodedAttestationObject.byteOffset,
+                encodedAttestationObject.byteOffset + encodedAttestationObject.byteLength
+            ),
+        }
+
+        const normalKey = lib.createPublic(normalResponse)
+        const extensionKey = lib.createPublic(responseWithExtensions)
+
+        assert.equal(extensionKey.toString(), normalKey.toString())
     })
 
     test('createSignature', function () {
@@ -170,5 +219,100 @@ suite('index', function () {
             lib.recoverPublic(signature, wrongMessage).equals(fullOriginalPublicKey),
             'recovered key from wrong message should not match'
         )
+    })
+
+    test('recoverPotentialPublicKeysFromAssertion', function () {
+        const tests = [
+            {
+                expected: PublicKey.from(
+                    'PUB_WA_89okPTBho8bdeyJvcxeTHdgzrafqNNj3hAHiraRGkhFvJwyoFwYz5BsedHfaD5ztZ'
+                ),
+                test: {
+                    authenticatorData: 'SZYN5YgOjGh0NBcPZHZgW4/krrmihjLHmVzzuoMdl2MdAAAAAA==',
+                    clientDataJSON:
+                        'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoibG94emp1QU80LTBCWmdxMlFfdFhZTFZkY2hCLUczR1hhWFJkdlg1WC1idyIsIm9yaWdpbiI6Imh0dHBzOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2V9',
+                    signature:
+                        'MEQCIE5+VXUOFKCTSm2dTuSHjAxitV0wTTt4U9fhZCY21lKSAiBuQOIF1X8J1MHdqzso/YziEopU3GeLa5Vr735H7ImzTA==',
+                },
+            },
+            {
+                expected: PublicKey.from(
+                    'PUB_WA_8JhEwQXavciD5LzQQRNLcWFcR1ZAT8W7ZVZW4HSaRrjHEeRwxEMVvPAQKxxwEtEb2'
+                ),
+                test: {
+                    authenticatorData: 'SZYN5YgOjGh0NBcPZHZgW4/krrmihjLHmVzzuoMdl2MdAAAAAA==',
+                    clientDataJSON:
+                        'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiV2M0YUJoa2tTOC1UbkJiaHlUc1ZTYkFXZ3h6cmRKQ1ZheVlJWng2RDcxNCIsIm9yaWdpbiI6Imh0dHBzOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2V9',
+                    signature:
+                        'MEUCIQD+n3FXLT1Hg2HQI317xg6HTfzSJhgJKkyAzSZJ22J71AIgHf5xTiU41HJyW6nRqczA4oBip5wZJTAXheCqpQwjraY=',
+                },
+            },
+            {
+                expected: PublicKey.from(
+                    'PUB_WA_8ZsvTF146ErZHT96QdkqaVHgLVBvksP72TdqmN4U8BM8NjmkzGhf46Hiv5ca51yBL'
+                ),
+                test: {
+                    authenticatorData: 'SZYN5YgOjGh0NBcPZHZgW4/krrmihjLHmVzzuoMdl2MdAAAAAA==',
+                    clientDataJSON:
+                        'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoic19jWVcyUThPUzNMTTZsNnRhWnZpQjV5NnBxUHl5cVdGU25zR2FNdW5yNCIsIm9yaWdpbiI6Imh0dHBzOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2V9',
+                    signature:
+                        'MEUCIQCqa/kBX2IbojmanY7+NwX6esbmCZbbmHpgOZi7m7SpvAIgavdO7tNvR5e2OJ6KzjeFg3MzJH2JXzp3TYox1tOvHjo=',
+                },
+            },
+            {
+                expected: PublicKey.from(
+                    'PUB_WA_8ZsvTF146ErZHT96QdkqaVHgLVBvksP72TdqmN4U8BM8NjmkzGhf46Hiv5ca51yBL'
+                ),
+                test: {
+                    authenticatorData: 'SZYN5YgOjGh0NBcPZHZgW4/krrmihjLHmVzzuoMdl2MdAAAAAA==',
+                    clientDataJSON:
+                        'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiRFhwVFhqcDVtSFJNVHBmRGd1aFgtS2hBUXpMY1RPbnVPN1Q5M213Mm1MbyIsIm9yaWdpbiI6Imh0dHBzOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2V9',
+                    signature:
+                        'MEUCIECZn6Pd7uzHkSGFHS7axlXBQProcODgNbhG4MXo2wvMAiEAgwXTUcv1h4ziTB3axO7wDyAuejHhNTCtyATEdouQIFE',
+                },
+            },
+        ]
+
+        for (const data of tests) {
+            // Construct a mock AuthenticatorAssertionResponse
+            const authenticatorData = Buffer.from(data.test.authenticatorData, 'base64')
+            const clientDataJSON = Buffer.from(data.test.clientDataJSON, 'base64')
+            const signature = Buffer.from(data.test.signature, 'base64')
+            const response: AuthenticatorAssertionResponse = {
+                authenticatorData: authenticatorData.buffer.slice(
+                    authenticatorData.byteOffset,
+                    authenticatorData.byteOffset + authenticatorData.byteLength
+                ) as ArrayBuffer,
+                clientDataJSON: clientDataJSON.buffer.slice(
+                    clientDataJSON.byteOffset,
+                    clientDataJSON.byteOffset + clientDataJSON.byteLength
+                ) as ArrayBuffer,
+                signature: signature.buffer.slice(
+                    signature.byteOffset,
+                    signature.byteOffset + signature.byteLength
+                ) as ArrayBuffer,
+                userHandle: new ArrayBuffer(0),
+            }
+
+            // Recover the public key from the assertion response
+            const publicKeys = lib.recoverPotentialPublicKeysFromAssertion(response)
+
+            // Verify the key returned is the proper type
+            publicKeys.forEach((publicKey) => {
+                assert.equal(publicKey.type, KeyType.WA, 'recovered keys should all be type of WA')
+            })
+
+            // console.log('Expected public key:', data.expected.toString())
+            // console.log(`Recovered ${publicKeys.length} potential public keys:`)
+            // publicKeys.forEach((pk, idx) => {
+            //     console.log(`  [${idx}] ${pk.toString()}`)
+            // })
+
+            // Ensure the recovered key matches the expected key
+            assert.isTrue(
+                publicKeys.some((pk) => pk.equals(data.expected)),
+                `one of the public keys should equal the original public key (${data.expected.toString()})`
+            )
+        }
     })
 })

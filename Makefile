@@ -9,11 +9,11 @@ lib: ${SRC_FILES} package.json tsconfig.json node_modules rollup.config.js
 	@${BIN}/rollup -c && touch lib
 
 .PHONY: test
-test: node_modules
+test: lib node_modules
 	@TS_NODE_PROJECT='./test/tsconfig.json' \
 		${BIN}/mocha ${MOCHA_OPTS} test/*.ts --grep '$(grep)'
 
-build/coverage: ${SRC_FILES} ${TEST_FILES} node_modules
+build/coverage: ${SRC_FILES} ${TEST_FILES} lib node_modules
 	@TS_NODE_PROJECT='./test/tsconfig.json' \
 		${BIN}/nyc ${NYC_OPTS} --reporter=html \
 		${BIN}/mocha ${MOCHA_OPTS} -R nyan test/*.ts
@@ -23,7 +23,7 @@ coverage: build/coverage
 	@open build/coverage/index.html
 
 .PHONY: ci-test
-ci-test: node_modules
+ci-test: lib node_modules
 	@TS_NODE_PROJECT='./test/tsconfig.json' \
 		${BIN}/nyc ${NYC_OPTS} --reporter=text \
 		${BIN}/mocha ${MOCHA_OPTS} -R list test/*.ts
