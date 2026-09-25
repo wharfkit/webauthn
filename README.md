@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> This package lives in the WharfKit monorepo at [wharfkit/js/packages/webauthn](https://github.com/wharfkit/js/tree/dev/packages/webauthn), and this repository is archived. Open new issues and pull requests on [wharfkit/js](https://github.com/wharfkit/js).
+
 # eosio-webauthn
 
 Helpers for creating WebAuthn PublicKeys and Signatures using [@wharfkit/antelope](https://github.com/wharfkit/antelope).
